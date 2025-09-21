@@ -1,7 +1,6 @@
 # Knight ⚔️
 Advanced Multi-Platform WhatsApp Bot
 
-[Description we wrote earlier goes here]
 
 ## Features
 - Multi-Device Support

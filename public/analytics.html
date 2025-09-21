@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knight Analytics Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 1.1em;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 20px 0;
+        }
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+        .section-title {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin: 30px 0 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ Knight Analytics Dashboard</h1>
+            <p>Monitor your bot's performance and usage statistics</p>
+        </header>
+
+        <button class="refresh-btn" onclick="loadAllData()">🔄 Refresh Data</button>
+
+        <!-- Overview Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalCommands">0</div>
+                <div class="stat-label">Total Commands</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalDownloads">0</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeUsers">0</div>
+                <div class="stat-label">Active Users (1h)</div>
+            </div>
+        </div>
+
+        <!-- Command Statistics -->
+        <h2 class="section-title">Command Usage Statistics</h2>
+        <div class="chart-container">
+            <table id="commandStatsTable">
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Executions</th>
+                        <th>Avg. Time (ms)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Top Users -->
+        <h2 class="section-title">Top Active Users</h2>
+        <div class="chart-container">
+            <table id="topUsersTable">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Commands Used</th>
+                        <th>Downloads</th>
+                        <th>Last Seen</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Recent Downloads -->
+        <h2 class="section-title">Recent Downloads</h2>
+        <div class="chart-container">
+            <table id="downloadsTable">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Title</th>
+                        <th>Service</th>
+                        <th>Size</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Format bytes for display
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Format date for display
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+
+        // Load overview statistics
+        async function loadOverviewStats() {
+            try {
+                const response = await fetch('/analytics');
+                const data = await response.json();
+                
+                document.getElementById('totalUsers').textContent = data.stats.totalUsers;
+                document.getElementById('totalCommands').textContent = data.stats.totalCommands;
+                document.getElementById('totalDownloads').textContent = data.stats.totalDownloads;
+                
+                // Load real-time stats
+                const realtimeResponse = await fetch('/analytics/realtime');
+                const realtimeData = await realtimeResponse.json();
+                document.getElementById('activeUsers').textContent = realtimeData.activeUsers;
+                
+                // Update command stats table
+                const commandStatsBody = document.querySelector('#commandStatsTable tbody');
+                commandStatsBody.innerHTML = '';
+                data.stats.commandStats.forEach(stat => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${stat.command_name}</strong></td>
+                        <td>${stat.count}</td>
+                        <td>${Math.round(stat.avg_time)}</td>
+                    `;
+                    commandStatsBody.appendChild(row);
+                });
+                
+                // Update top users table
+                const topUsersBody = document.querySelector('#topUsersTable tbody');
+                topUsersBody.innerHTML = '';
+                data.stats.topUsers.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.name || user.jid}</td>
+                        <td>${user.commands_used}</td>
+                        <td>${user.downloads_made}</td>
+                        <td>${formatDate(user.last_seen)}</td>
+                    `;
+                    topUsersBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading overview stats:', error);
+            }
+        }
+
+        // Load downloads history
+        async function loadDownloads() {
+            try {
+                const response = await fetch('/analytics/downloads');
+                const downloads = await response.json();
+                
+                const downloadsBody = document.querySelector('#downloadsTable tbody');
+                downloadsBody.innerHTML = '';
+                
+                downloads.forEach(download => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${download.user_name || download.user_jid}</td>
+                        <td>${download.title}</td>
+                        <td>${download.service}</td>
+                        <td>${formatBytes(download.size)}</td>
+                        <td>${formatDate(download.downloaded_at)}</td>
+                    `;
+                    downloadsBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading downloads:', error);
+            }
+        }
+
+        // Load all data
+        async function loadAllData() {
+            await loadOverviewStats();
+            await loadDownloads();
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllData();
+            
+            // Refresh data every 30 seconds
+            setInterval(loadAllData, 30000);
+        });
+    </script>
+</body>
+</html>

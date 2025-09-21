@@ -1,7 +1,7 @@
 /**
  * Knight - Advanced Multi-Platform WhatsApp Bot
  * @version 1.0.0
- * @author Your Name
+ * @author Midknight
  */
 
 require('dotenv').config();
@@ -62,8 +62,6 @@ app.get('/status', (req, res) => {
 // Analytics dashboard route
 app.get('/analytics', async (req, res) => {
   try {
-    const database = require('./database');
-    
     // Get statistics
     const topUsers = await database.getTopUsers(10);
     const commandStats = await database.getCommandStats(30);
@@ -89,7 +87,6 @@ app.get('/analytics', async (req, res) => {
 // User statistics route
 app.get('/analytics/users', async (req, res) => {
   try {
-    const database = require('./database');
     const users = await database.db.all(`
       SELECT jid, name, commands_used, downloads_made, first_seen, last_seen
       FROM users 
@@ -105,7 +102,6 @@ app.get('/analytics/users', async (req, res) => {
 // Command statistics route
 app.get('/analytics/commands', async (req, res) => {
   try {
-    const database = require('./database');
     const commands = await database.db.all(`
       SELECT command_name, COUNT(*) as count, AVG(execution_time) as avg_time
       FROM command_stats 
@@ -121,7 +117,6 @@ app.get('/analytics/commands', async (req, res) => {
 // Download history route
 app.get('/analytics/downloads', async (req, res) => {
   try {
-    const database = require('./database');
     const downloads = await database.db.all(`
       SELECT dh.*, u.name as user_name
       FROM download_history dh
@@ -138,8 +133,6 @@ app.get('/analytics/downloads', async (req, res) => {
 // Real-time stats endpoint
 app.get('/analytics/realtime', async (req, res) => {
   try {
-    const database = require('./database');
-    
     // Get last hour stats
     const recentCommands = await database.db.get(`
       SELECT COUNT(*) as count 
@@ -173,24 +166,9 @@ async function initializeKnight() {
     await database.initialize();
     Logger.success('Database initialized');
     
-    // Initialize plugin manager
-    const pluginManager = require('./services/pluginManager');
-    await pluginManager.loadPlugins();
-    Logger.success('Plugins loaded');
-    
-    // Initialize notification service
-    const notificationService = require('./services/notificationService');
-    await notificationService.initialize();
-    Logger.success('Notification service initialized');
-    
     // Load commands
     loadCommands();
     Logger.success('Commands loaded');
-    
-    // Register plugin commands
-    const { registry } = require('./commands');
-    pluginManager.registerPluginCommands(registry);
-    Logger.success('Plugin commands registered');
     
     // Initialize schedule service
     const scheduleService = require('./services/scheduleService');
@@ -219,24 +197,158 @@ async function initializeKnight() {
     // Initialize WhatsApp (this will show QR code)
     await initializeWhatsApp();
     
-    // Add cleanup task for old downloads
+    // Add cleanup tasks
     setInterval(() => {
       try {
         const youtubeService = require('./services/youtubeService');
         youtubeService.cleanupOldDownloads();
+        
+        const notificationService = require('./services/notificationService');
+        notificationService.cleanupOldNotifications();
+        
+        const taskService = require('./services/taskService');
+        taskService.cleanupOldTasks();
+        
+        const cryptoService = require('./services/cryptoService');
+        cryptoService.cleanupCache();
+        
+        const newsService = require('./services/newsService');
+        newsService.cleanupCache();
+        
+        const weatherService = require('./services/weatherService');
+        weatherService.cleanupCache();
+        
+        const stockService = require('./services/stockService');
+        stockService.cleanupCache();
+        
+        const fitnessService = require('./services/fitnessService');
+        fitnessService.cleanupCache();
+        
+        const recipeService = require('./services/recipeService');
+        recipeService.cleanupCache();
+        
+        const entertainmentService = require('./services/entertainmentService');
+        entertainmentService.cleanupCache();
+        
+        const financialService = require('./services/financialService');
+        financialService.cleanupCache();
+        
+        const contactService = require('./services/contactService');
+        contactService.cleanupCache();
       } catch (error) {
         Logger.error(`Cleanup error: ${error.message}`);
       }
     }, 60 * 60 * 1000); // Run every hour
     
-    // Add notification cleanup
+    // Add fitness reminder checker
     setInterval(() => {
       try {
-        notificationService.cleanupOldNotifications();
+        const fitnessService = require('./services/fitnessService');
+        fitnessService.checkFitnessReminders();
       } catch (error) {
-        Logger.error(`Notification cleanup error: ${error.message}`);
+        Logger.error(`Fitness reminder check error: ${error.message}`);
       }
-    }, 24 * 60 * 60 * 1000); // Run every day
+    }, 60 * 1000); // Run every minute
+    
+    // Add crypto alert checker
+    setInterval(() => {
+      try {
+        const cryptoService = require('./services/cryptoService');
+        cryptoService.checkCryptoAlerts();
+      } catch (error) {
+        Logger.error(`Crypto alert check error: ${error.message}`);
+      }
+    }, 5 * 60 * 1000); // Run every 5 minutes
+    
+    // Add news alert checker
+    setInterval(() => {
+      try {
+        const newsService = require('./services/newsService');
+        newsService.checkNewsAlerts();
+      } catch (error) {
+        Logger.error(`News alert check error: ${error.message}`);
+      }
+    }, 15 * 60 * 1000); // Run every 15 minutes
+    
+    // Add weather alert checker
+    setInterval(() => {
+      try {
+        const weatherService = require('./services/weatherService');
+        weatherService.checkWeatherAlerts();
+      } catch (error) {
+        Logger.error(`Weather alert check error: ${error.message}`);
+      }
+    }, 30 * 60 * 1000); // Run every 30 minutes
+    
+    // Add stock alert checker
+    setInterval(() => {
+      try {
+        const stockService = require('./services/stockService');
+        stockService.checkStockAlerts();
+      } catch (error) {
+        Logger.error(`Stock alert check error: ${error.message}`);
+      }
+    }, 10 * 60 * 1000); // Run every 10 minutes
+    
+    // Add financial alert checker
+    setInterval(() => {
+      try {
+        const financialService = require('./services/financialService');
+        financialService.checkFinancialAlerts();
+      } catch (error) {
+        Logger.error(`Financial alert check error: ${error.message}`);
+      }
+    }, 15 * 60 * 1000); // Run every 15 minutes
+    
+    // Add entertainment alert checker
+    setInterval(() => {
+      try {
+        const entertainmentService = require('./services/entertainmentService');
+        entertainmentService.checkEpisodeReminders();
+      } catch (error) {
+        Logger.error(`Entertainment alert check error: ${error.message}`);
+      }
+    }, 30 * 60 * 1000); // Run every 30 minutes
+    
+    // Add recipe alert checker
+    setInterval(() => {
+      try {
+        const recipeService = require('./services/recipeService');
+        recipeService.checkRecipeReminders();
+      } catch (error) {
+        Logger.error(`Recipe alert check error: ${error.message}`);
+      }
+    }, 60 * 60 * 1000); // Run every hour
+    
+    // Add task reminder checker
+    setInterval(() => {
+      try {
+        const taskService = require('./services/taskService');
+        taskService.checkTaskReminders();
+      } catch (error) {
+        Logger.error(`Task reminder check error: ${error.message}`);
+      }
+    }, 5 * 60 * 1000); // Run every 5 minutes
+    
+    // Add notification checker
+    setInterval(() => {
+      try {
+        const notificationService = require('./services/notificationService');
+        notificationService.checkNotifications();
+      } catch (error) {
+        Logger.error(`Notification check error: ${error.message}`);
+      }
+    }, 30 * 1000); // Run every 30 seconds
+    
+    // Add contact alert checker
+    setInterval(() => {
+      try {
+        const contactService = require('./services/contactService');
+        contactService.checkContactReminders();
+      } catch (error) {
+        Logger.error(`Contact alert check error: ${error.message}`);
+      }
+    }, 60 * 60 * 1000); // Run every hour
     
   } catch (error) {
     Logger.error(`Failed to initialize ${config.bot.name}: ${error.message}`);

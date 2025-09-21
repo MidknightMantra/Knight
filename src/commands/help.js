@@ -1,58 +1,58 @@
 /**
  * Help Command
- * Displays available commands and usage information
+ * Display available commands in user's language
  */
 
-const { registry } = require("./index");
+const { registry } = require('./index');
+const languageService = require('../services/languageService');
 
 module.exports = {
-  name: "help",
-  aliases: ["h", "commands"],
-  category: "general",
-  description: "Display available commands",
-  usage: "!help [command]",
-
+  name: 'help',
+  aliases: ['h', 'commands', 'msaada', 'ayuda'],
+  category: 'general',
+  description: 'Display available commands',
+  usage: '!help [command]',
+  
   async execute(client, message, args) {
-    const prefix = "!"; // This will come from config later
-
+    const userId = message.key.remoteJid;
+    const userLang = await languageService.getUserLanguage(userId);
+    const prefix = '!'; // This will come from config later
+    
     if (args[0]) {
       // Show specific command help
       const command = registry.get(args[0]);
       if (command) {
         return `
-⚔️ *${command.name.toUpperCase()} Command*
+⚔️ *${command.name.toUpperCase()} ${languageService.translate('help_command', userLang)}*
 
-📝 *Description:* ${command.description}
-📌 *Usage:* ${prefix}${command.usage}
-📋 *Category:* ${command.category}
-${
-  command.aliases && command.aliases.length > 0
-    ? `🔄 *Aliases:* ${command.aliases.map((a) => prefix + a).join(", ")}`
-    : ""
-}
+📝 *${languageService.translate('description', userLang)}:* ${command.description}
+📌 *${languageService.translate('usage', userLang)}:* ${prefix}${command.usage}
+📋 *${languageService.translate('category', userLang)}:* ${command.category}
+${command.aliases && command.aliases.length > 0 ? 
+  `🔄 *${languageService.translate('aliases', userLang)}:* ${command.aliases.map(a => prefix + a).join(', ')}` : ''}
         `.trim();
       } else {
-        return `❌ Command "${args[0]}" not found.`;
+        return `❌ ${languageService.translate('command_not_found', userLang)}.`;
       }
     } else {
       // Show all commands
       const categories = registry.getCategories();
-      let helpText = `⚔️ *Knight Bot Commands*\n\n`;
-
-      categories.forEach((category) => {
+      let helpText = `⚔️ *Knight ${languageService.translate('help_command', userLang)}*\n\n`;
+      
+      categories.forEach(category => {
         const commands = registry.getByCategory(category);
         if (commands.length > 0) {
           helpText += `*${category.toUpperCase()}*\n`;
-          commands.forEach((cmd) => {
+          commands.forEach(cmd => {
             helpText += `▫️ ${prefix}${cmd.name} - ${cmd.description}\n`;
           });
           helpText += `\n`;
         }
       });
-
-      helpText += `📝 *Tip:* Use ${prefix}help <command> for detailed info`;
-
+      
+      helpText += `${languageService.translate('tip', userLang)}: ${prefix}${languageService.translate('help_command', userLang)} <${languageService.translate('command', userLang)}> ${languageService.translate('for_detailed_info', userLang)}`;
+      
       return helpText;
     }
-  },
+  }
 };

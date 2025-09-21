@@ -173,9 +173,24 @@ async function initializeKnight() {
     await database.initialize();
     Logger.success('Database initialized');
     
+    // Initialize plugin manager
+    const pluginManager = require('./services/pluginManager');
+    await pluginManager.loadPlugins();
+    Logger.success('Plugins loaded');
+    
+    // Initialize notification service
+    const notificationService = require('./services/notificationService');
+    await notificationService.initialize();
+    Logger.success('Notification service initialized');
+    
     // Load commands
     loadCommands();
     Logger.success('Commands loaded');
+    
+    // Register plugin commands
+    const { registry } = require('./commands');
+    pluginManager.registerPluginCommands(registry);
+    Logger.success('Plugin commands registered');
     
     // Initialize schedule service
     const scheduleService = require('./services/scheduleService');
@@ -213,6 +228,15 @@ async function initializeKnight() {
         Logger.error(`Cleanup error: ${error.message}`);
       }
     }, 60 * 60 * 1000); // Run every hour
+    
+    // Add notification cleanup
+    setInterval(() => {
+      try {
+        notificationService.cleanupOldNotifications();
+      } catch (error) {
+        Logger.error(`Notification cleanup error: ${error.message}`);
+      }
+    }, 24 * 60 * 60 * 1000); // Run every day
     
   } catch (error) {
     Logger.error(`Failed to initialize ${config.bot.name}: ${error.message}`);

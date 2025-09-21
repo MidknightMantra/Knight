@@ -76,66 +76,124 @@ class DatabaseManager {
     if (this.type !== 'sqlite') return;
 
     await this.db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    jid TEXT UNIQUE,
-    name TEXT,
-    commands_used INTEGER DEFAULT 0,
-    downloads_made INTEGER DEFAULT 0,
-    first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        jid TEXT UNIQUE,
+        name TEXT,
+        commands_used INTEGER DEFAULT 0,
+        downloads_made INTEGER DEFAULT 0,
+        first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
 
-  CREATE TABLE IF NOT EXISTS groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    jid TEXT UNIQUE,
-    name TEXT,
-    commands_used INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+      CREATE TABLE IF NOT EXISTS groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        jid TEXT UNIQUE,
+        name TEXT,
+        commands_used INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
 
-  CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
 
-  CREATE TABLE IF NOT EXISTS download_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_jid TEXT,
-    service TEXT,
-    title TEXT,
-    filename TEXT,
-    size INTEGER,
-    downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_jid) REFERENCES users (jid)
-  );
+      CREATE TABLE IF NOT EXISTS download_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_jid TEXT,
+        service TEXT,
+        title TEXT,
+        filename TEXT,
+        size INTEGER,
+        downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_jid) REFERENCES users (jid)
+      );
 
-  CREATE TABLE IF NOT EXISTS command_stats (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    command_name TEXT,
-    user_jid TEXT,
-    executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    execution_time INTEGER,
-    success BOOLEAN,
-    FOREIGN KEY (user_jid) REFERENCES users (jid)
-  );
+      CREATE TABLE IF NOT EXISTS command_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        command_name TEXT,
+        user_jid TEXT,
+        executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        execution_time INTEGER,
+        success BOOLEAN,
+        FOREIGN KEY (user_jid) REFERENCES users (jid)
+      );
 
-  CREATE TABLE IF NOT EXISTS scheduled_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id TEXT,
-    user_id TEXT,
-    message TEXT,
-    scheduled_time DATETIME,
-    recurring BOOLEAN DEFAULT FALSE,
-    interval TEXT,
-    expires_at DATETIME,
-    timezone TEXT DEFAULT 'UTC',
-    active BOOLEAN DEFAULT TRUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES groups (jid)
-  );
-`);
+      CREATE TABLE IF NOT EXISTS scheduled_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id TEXT,
+        user_id TEXT,
+        message TEXT,
+        scheduled_time DATETIME,
+        recurring BOOLEAN DEFAULT FALSE,
+        interval TEXT,
+        expires_at DATETIME,
+        timezone TEXT DEFAULT 'UTC',
+        active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES groups (jid)
+      );
+
+      -- Status viewing tables
+      CREATE TABLE IF NOT EXISTS status_views (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        status_id TEXT UNIQUE,
+        user_jid TEXT,
+        viewed_at DATETIME,
+        has_media BOOLEAN DEFAULT FALSE,
+        message_type TEXT,
+        FOREIGN KEY (user_jid) REFERENCES users (jid)
+      );
+
+      CREATE TABLE IF NOT EXISTS status_media (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        status_id TEXT,
+        filepath TEXT,
+        filename TEXT,
+        media_type TEXT,
+        downloaded_at DATETIME,
+        user_jid TEXT,
+        FOREIGN KEY (user_jid) REFERENCES users (jid),
+        FOREIGN KEY (status_id) REFERENCES status_views (status_id)
+      );
+
+      -- Notification tables
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        message TEXT,
+        type TEXT DEFAULT 'info', -- info, warning, error, success
+        priority TEXT DEFAULT 'normal', -- low, normal, high, urgent
+        target TEXT DEFAULT 'all', -- all, users, groups
+        recipients TEXT, -- JSON array of jids
+        scheduled_time DATETIME,
+        recurring BOOLEAN DEFAULT FALSE,
+        interval TEXT, -- for recurring notifications (e.g., "1d", "2h")
+        expires_at DATETIME,
+        channel_id TEXT,
+        active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS notification_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_jid TEXT,
+        notification_type TEXT DEFAULT 'all',
+        subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_jid) REFERENCES users (jid),
+        UNIQUE(user_jid, notification_type)
+      );
+
+      CREATE TABLE IF NOT EXISTS notification_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        notification_id INTEGER,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        recipients_count INTEGER,
+        FOREIGN KEY (notification_id) REFERENCES notifications (id)
+      );
+    `);
   }
 
   // User management
